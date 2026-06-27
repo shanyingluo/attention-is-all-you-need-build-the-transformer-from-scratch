@@ -33,7 +33,6 @@ def encode_sentence_to_ids(sentence, token_to_id, unk_token='<unk>'):
     # TODO: convert whitespace tokens of `sentence` to ids via `token_to_id`, using `unk_token`'s id for OOV
     ret = []
     unk_id = token_to_id[unk_token]
-    idx = 0
 
     for token in sentence.split():
         id = token_to_id.get(token, unk_id)
