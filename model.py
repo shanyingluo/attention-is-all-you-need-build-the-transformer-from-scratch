@@ -78,7 +78,7 @@ def compute_positional_div_term(d_model):
     # TODO: return a 1D FloatTensor of length d_model // 2 holding the sinusoidal frequency divisors
     even_indices = torch.arange(0, d_model, 2, dtype=torch.float32)
 
-    # div_term = exp(2i * -(log(1000) / d_model))
+    # div_term = exp(2i * -(log(10000) / d_model))
     div_term = torch.exp(even_indices * -(torch.log(torch.tensor(10000.0)) / d_model))
 
     return div_term
