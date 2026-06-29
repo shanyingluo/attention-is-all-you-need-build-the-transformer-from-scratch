@@ -209,45 +209,6 @@ def apply_attention_weights_to_values(attention_weights, value):
 # Step 22 - scaled_dot_product_attention
 import torch
 
-def compute_raw_attention_scores(query, key):
-    """Compute raw attention scores Q @ K^T over the last two dimensions."""
-    # TODO: matmul query with the transpose of key over the last two axes
-    key_transpose = key.transpose(-2, -1)
-    return torch.matmul(query, key_transpose)
-
-
-def scale_attention_scores(scores, d_k):
-    # TODO: divide raw attention scores by sqrt(d_k) to stabilize softmax inputs
-    scale_factor = math.sqrt(d_k)
-    return scores / scale_factor
-
-def mask_attention_scores_with_neg_inf(scores, mask):
-    """Set entries of scores where mask is False to -inf."""
-    # TODO: replace blocked positions of scores with negative infinity
-    
-    # return torch.where(mask, scores, torch.tensor(float('-inf')))
-
-    return scores.masked_fill(~mask, float('-inf'))
-
-def mask_attention_scores_with_neg_inf(scores, mask):
-    """Set entries of scores where mask is False to -inf."""
-    # TODO: replace blocked positions of scores with negative infinity
-    
-    # return torch.where(mask, scores, torch.tensor(float('-inf')))
-
-    return scores.masked_fill(~mask, float('-inf'))
-
-
-def softmax_attention_weights(masked_scores):
-    # TODO: softmax over the last axis, zeroing rows that are entirely -inf
-    ret = torch.softmax(masked_scores, dim=-1)
-    return torch.nan_to_num(ret, nan=0.0)
-
-def apply_attention_weights_to_values(attention_weights, value):
-    """Multiply attention weights by the value matrix to produce context vectors."""
-    # TODO: combine attention weights (..., Lq, Lk) with value (..., Lk, d_v)
-    return torch.matmul(attention_weights, value)
-
 def scaled_dot_product_attention(query, key, value, mask=None):
     """Run scaled dot-product attention; return (context, attention_weights)."""
     # TODO: chain raw scores, scale by sqrt(d_k), optionally mask, softmax, then mix values
@@ -255,22 +216,25 @@ def scaled_dot_product_attention(query, key, value, mask=None):
 
     # 1. 计算原始分数 step 17
     # (..., Lq, d_k) @ (..., k_k, Lk) -> (..., Lq, Lk)
-    scores = compute_raw_attention_scores(query, key)
+    key_transpose = torch.transpose(key, -2, -1)
+    scores = torch.matmul(query, key_transpose)
 
     # 2. 缩放分数 step 18
-    scores = scale_attention_scores(scores, d_k)
+    scale_factor = math.sqrt(d_k)
+    scores = scores / scale_factor
 
     #3 如果传入了掩码， 则应用掩码 step 19
     if mask is not None:
-        scores = mask_attention_scores_with_neg_inf(scores, mask)
+        scores = torch.where(mask, scores, torch.tensor(float('-inf')))
 
     #4 计算注意力权重 / 概率 step 20
     # 需要预防 NaN 
-    attention_weights = softmax_attention_weights(scores)
+    attention_weights = torch.softmax(scores, dim=-1)
+    attention_weights = torch.nan_to_num(attention_weights, nan=0.0)
 
     #5 用权重 value 进行加权求和,得到最终上下文 step 21
     # (..., Lq, Lk) @ (..., Lk, d_v) -> (..., Lq, d_v)
-    output = apply_attention_weights_to_values(attention_weights, value)
+    output = torch.matmul(attention_weights, value)
 
     return output, attention_weights
 
